@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Autorisations du « hardened runtime » exigé par la notarisation Apple.
+     Volontairement vide : DocFlex (Python, Qt, PyMuPDF) fonctionne sans exception ;
+     vérifié par l'autotest de l'application signée (packaging/macos/build_dmg.sh). -->
+<plist version="1.0">
+<dict/>
+</plist>

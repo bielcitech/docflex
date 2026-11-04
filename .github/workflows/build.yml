@@ -1,0 +1,48 @@
+# Construit les installeurs macOS (Apple Silicon et Intel) et Windows.
+# Déclenché à la main, ou en poussant un tag « v* » (ex. v0.1.0).
+name: Installeurs
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  macos:
+    strategy:
+      matrix:
+        # macos-14 : Apple Silicon (arm64) ; macos-15-intel : Mac Intel (x86_64).
+        runner: [macos-14, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          python -m venv .venv
+          .venv/bin/pip install -r requirements-dev.txt
+          DOCFLEX_BLOCK_OPTIONAL=1 .venv/bin/python -m pytest -q
+          ./packaging/macos/build_dmg.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docflex-${{ matrix.runner }}
+          path: dist/*.dmg
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: choco install innosetup --no-progress -y
+      - run: |
+          python -m venv .venv
+          .venv\Scripts\python -m pip install -r requirements-dev.txt
+          $env:DOCFLEX_BLOCK_OPTIONAL = "1"; .venv\Scripts\python -m pytest -q
+          powershell -ExecutionPolicy Bypass -File packaging\windows\build_installer.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docflex-windows
+          path: dist/*-setup.exe

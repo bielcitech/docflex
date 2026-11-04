@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4C8DFF"/>
+      <stop offset="0.55" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#3B2FC9"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="badge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFB547"/>
+      <stop offset="1" stop-color="#F2551F"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EEF3FF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Fond -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#shine)"/>
+
+  <!-- Feuille arrière : plusieurs documents -->
+  <g transform="rotate(-9 470 520)">
+    <rect x="262" y="262" width="390" height="500" rx="34" fill="#FFFFFF" fill-opacity="0.38"/>
+  </g>
+
+  <!-- Feuille principale, coin corné en haut à droite -->
+  <path d="M 344 222 L 600 222 L 712 334 L 712 742 Q 712 776 678 776 L 344 776 Q 310 776 310 742
+           L 310 256 Q 310 222 344 222 Z" fill="url(#paper)"/>
+  <path d="M 600 222 L 600 300 Q 600 334 634 334 L 712 334 Z" fill="#C9D8FF"/>
+
+  <!-- Lignes de texte -->
+  <rect x="370" y="300" width="170" height="30" rx="15" fill="#2563EB"/>
+  <rect x="370" y="382" width="282" height="22" rx="11" fill="#B9C8EE"/>
+  <rect x="370" y="436" width="282" height="22" rx="11" fill="#B9C8EE"/>
+  <rect x="370" y="490" width="210" height="22" rx="11" fill="#B9C8EE"/>
+  <rect x="370" y="544" width="150" height="22" rx="11" fill="#B9C8EE"/>
+
+  <!-- Pastille : deux flèches circulaires (transformer, convertir) -->
+  <circle cx="682" cy="700" r="176" fill="#FFFFFF"/>
+  <circle cx="682" cy="700" r="156" fill="url(#badge)"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="30" stroke-linecap="round">
+    <path d="M 600 666 A 86 86 0 0 1 752 640"/>
+    <path d="M 764 734 A 86 86 0 0 1 612 760"/>
+  </g>
+  <g fill="#FFFFFF">
+    <path d="M 784 600 L 790 684 L 712 660 Z"/>
+    <path d="M 580 800 L 574 716 L 652 740 Z"/>
+  </g>
+</svg>
