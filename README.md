@@ -12,13 +12,19 @@ python3.12 -m venv .venv
 .venv/bin/python -m pytest -q                     # moteur + interface (sans fenêtre visible)
 ```
 
+Les tests (plus de 200) pilotent la vraie interface avec pytest-qt, sans fenêtre visible. `conftest.py`
+isole les réglages et l'historique dans un dossier temporaire (`DOCFLEX_SETTINGS_FILE`,
+`DOCFLEX_DATA_DIR`) : lancer les tests ne touche ni aux documents récents ni aux préférences.
+
 Structure :
 
 | Dossier | Rôle |
 |---|---|
-| `docflex/core/` | Logique sans interface : `converters.py` (registre des conversions), `office.py` (LibreOffice) |
-| `docflex/ui/` | Interface Qt : une vue par outil, widgets communs (`widgets.py`), thème clair/sombre (`theme.py`) |
+| `docflex/core/` | Logique sans interface, testable seule : `converters.py` (registre des conversions), `office.py` (LibreOffice), `split.py`, `organize.py`, `compress.py`, `pdf_tools.py` et `pdf_extras.py` (outils PDF), `reader.py` (mots, recherche, liens, table des matières), `annotations.py` (annotations et historique), `editing.py` (texte, images, champs de formulaire), `forms.py` (calculs des formulaires), `recent.py` (documents récents), `tasks.py` (progression, rapports) |
+| `docflex/ui/` | Interface Qt : une vue par menu (`*_view.py`) ; lecteur en onglets (`reader_view.py`, un `document_tab.py` par document, rendu dans `reader_canvas.py`) ; barres flottantes (`floating.py`), saisie dans la page (`text_editor.py`, `field_editor.py`), impression (`printing.py`) ; widgets communs (`widgets.py`), thème clair/sombre (`theme.py`) |
 | `docflex/utils/` | Chemins, tailles, ouverture de dossiers |
+| `packaging/` | Installeurs macOS et Windows, icône |
+| `video/` | Vidéo de démonstration (Remotion + ElevenLabs) : voir `video/README.md` |
 
 Ajouter une conversion : écrire une fonction `(src, dest, opts, progress) -> list[Path]`
 dans `converters.py` et l'inscrire dans `CONVERSIONS`. L'interface la propose automatiquement.
@@ -41,10 +47,32 @@ recherche, tri, menu « ⋯ » (ouvrir, afficher dans le dossier, favori, retire
 reprend à la dernière page lue. Historique et miniatures restent sur la machine (dossier de données
 de l'application).
 
-Lecteur PDF : défilement continu, zoom (largeur, page entière, 25–400 %, ⌘+molette, pincement),
-miniatures et signets dans un panneau latéral, recherche (tous les résultats surlignés, ⌘F, Entrée
-pour le suivant), sélection et copie de texte, PDF protégés (mot de passe demandé). « Ouvrir avec
-DocFlex » depuis le Finder ou l'Explorateur.
+Lecteur PDF : un onglet par document (rouvrir un document déjà ouvert ramène à son onglet ; le
+point « • » signale des modifications non enregistrées), défilement continu, zoom (largeur, page
+entière, 25–400 %, ⌘+molette, pincement), sélection et copie de texte, PDF protégés (mot de passe
+demandé). « Ouvrir avec DocFlex » depuis le Finder ou l'Explorateur ; plusieurs PDF à la fois avec ⌘O.
+
+Barres d'outils flottantes, posées sur le document qui défile dessous : en haut la navigation, le
+zoom, la recherche, l'impression et l'enregistrement ; en bas les outils du mode Annoter ou
+Modifier. Elles glissent hors champ pour lire tranquille (bouton en haut à droite ou ⌃⌘T /
+Ctrl+Alt+T, réglage mémorisé). La recherche sort en tiroir sous la barre du haut (⌘F, Entrée pour
+le résultat suivant, tous les résultats surlignés). Les messages s'affichent en bulle au-dessus de
+la barre du bas puis s'effacent. Si la fenêtre est trop étroite, le panneau latéral s'efface pour
+laisser la barre du bas entière.
+
+Panneau latéral (onglets en icônes) : miniatures des pages, table des matières, liste des
+annotations. La table des matières reprend les signets du PDF (un document Word exporté avec
+« Créer des signets à l'aide des titres », ou converti par DocFlex) et mène à la position exacte de
+chaque titre. Sans signets (Word « imprimé » en PDF), les titres sont devinés d'après la mise en
+forme — corps du texte, tailles plus grandes, gras isolé — à la première ouverture de l'onglet.
+Les liens des pages sont cliquables : vers une page du document, ou vers le navigateur et la
+messagerie pour une adresse externe.
+
+Impression (⌘P, icône de la barre du haut ou menu ⋯) : dialogue du système (aperçu, imprimante,
+copies, recto verso), tout le document, une plage ou la page courante. On imprime ce qui est
+affiché, annotations, champs remplis et modifications non enregistrées compris ; chaque page garde
+son orientation, réduite si elle dépasse la zone imprimable, jamais agrandie (rendu à 300 ppp au
+plus).
 
 Annotations (vraies annotations PDF, lisibles dans Acrobat, Foxit, Aperçu…) : surligner, souligner,
 barrer (texte sélectionné ou glissé), notes, zones de texte, rectangle, ellipse, ligne, flèche, dessin
@@ -61,11 +89,46 @@ standard proche — corrections ponctuelles, pas de recomposition de paragraphes
 saisie, au zoom courant ; Entrée passe à la ligne, ⌘ Entrée ou un clic ailleurs valide, Échap
 annule), déplacer du texte (avec « Modifier le texte », glisser une ligne déplace son paragraphe :
 réécrit à la nouvelle place, chaque fragment avec sa police, sa taille et sa couleur), ajouter une
-image, blanc correcteur (efface vraiment ce qui est dessous). Formulaires : clic sur un champ
-(surligné en bleu) pour le remplir. Annuler/rétablir commun avec les annotations (instantanés).
+image, blanc correcteur (efface vraiment ce qui est dessous). Annuler/rétablir commun avec les
+annotations (instantanés).
+
+Formulaires : la saisie se fait directement dans le champ (surligné en bleu), au zoom courant.
+Tab / ⇧Tab passent au champ suivant ou précédent dans l'ordre de lecture, Entrée valide, Échap
+abandonne ; Espace ou un clic cochent une case ; les listes s'ouvrent sur place ; un clic ailleurs
+et ⌘S gardent la saisie en cours. Boutons radio en groupe (une seule option cochée, même sur
+plusieurs pages). Calculs automatiques recalculés à chaque saisie, pour les formes que produit
+Acrobat sans programmation : somme, moyenne, produit, minimum, maximum (`AFSimple_Calculate`) et
+notation simplifiée (`Prix * Quantité`) ; nombres saisis à la française ou à l'anglaise ;
+résultat mis en forme (décimales, séparateurs, devise, pourcentage) ; calculs en chaîne. Les
+champs calculés passent en lecture seule et Tab les saute ; les scripts JavaScript écrits à la
+main sont ignorés (le champ garde sa valeur).
+Créer un formulaire (mode Modifier) : champ texte, case à cocher, bouton radio, liste déroulante ;
+on trace le champ, ou un clic le crée à une taille usuelle. Un nom unique est proposé (deux champs
+de même nom partageraient leur valeur). Clic droit sur un champ : remplir, renommer, calcul
+automatique (opération, champs sources, décimales ; écrit au format d'Acrobat, qui le reconnaît),
+supprimer.
 
 La barre de navigation se replie (poignée ‹ ou ⌃⌘S / Ctrl+Alt+S) ; son état et l'apparence sont
 mémorisés d'un lancement à l'autre.
+
+Raccourcis du lecteur (⌘ = Ctrl sous Windows) :
+
+| Raccourci | Action |
+|---|---|
+| ⌘O | Ouvrir un ou plusieurs PDF |
+| ⌘W | Fermer l'onglet |
+| ⌃Tab / ⌃⇧Tab (Windows : Ctrl+Tab / Ctrl+Maj+Tab) | Onglet suivant / précédent |
+| ⌃⌘T (Windows : Ctrl+Alt+T) | Afficher / masquer les barres d'outils |
+| ⌘F, puis Entrée | Rechercher, puis résultat suivant |
+| ⌘G, ⇧⌘G (Windows : F3, Maj+F3) | Résultat suivant / précédent |
+| ⌘+, ⌘−, ⌘0 | Zoom avant, arrière, ajuster à la largeur |
+| ⌘C | Copier le texte sélectionné |
+| ⌘S | Enregistrer |
+| ⌘P | Imprimer |
+| ⌘Z, ⇧⌘Z (Windows : Ctrl+Z, Ctrl+Y) | Annuler, rétablir |
+| Suppr, ⌫ | Supprimer l'annotation sélectionnée |
+| Échap | Revenir à l'outil Sélection, abandonner une saisie |
+| Tab, ⇧Tab | Champ de formulaire suivant / précédent |
 
 ## Découper un PDF
 
@@ -136,8 +199,14 @@ Chaque script exécute `DocFlex --selftest <dossier>` sur l'application empaquet
 l'installeur. Les modules optionnels de PyMuPDF (IA de mise en page, ~100 Mo) sont exclus
 de l'installeur ; `DOCFLEX_BLOCK_OPTIONAL=1 pytest` vérifie que rien n'en dépend.
 
-Les installeurs ne sont pas signés : au premier lancement, macOS demande un clic droit → Ouvrir,
-et Windows SmartScreen affiche « Informations complémentaires → Exécuter quand même ».
+Signature sur macOS : `build_dmg.sh` signe l'application (hardened runtime) avec le premier
+certificat « Developer ID Application » du trousseau, ou celui de `DOCFLEX_SIGN_IDENTITY`. Il fait
+ensuite notariser et agrafer l'application puis le DMG, avec le profil notarytool
+`docflex-notary` (ou `DOCFLEX_NOTARY_PROFILE`), à créer une fois :
+`xcrun notarytool store-credentials docflex-notary --apple-id <e-mail> --team-id <ÉQUIPE>`.
+Sans certificat, le DMG est produit non signé : au premier lancement, macOS demande un clic droit
+→ Ouvrir. L'installeur Windows n'est pas signé : SmartScreen affiche « Informations
+complémentaires → Exécuter quand même ».
 
 ## Icône
 
@@ -147,5 +216,10 @@ Windows (`.ico`) et celle de la fenêtre (`docflex/ui/assets/icon.png`).
 
 ## Licence
 
-PyMuPDF et pdf2docx sont sous licence AGPL-3.0. Distribuer DocFlex impose soit de publier son code
-source sous AGPL, soit d'acquérir une licence commerciale PyMuPDF auprès d'Artifex.
+DocFlex est un logiciel libre distribué sous licence **GNU AGPL-3.0 ou ultérieure** (fichier
+[`LICENSE`](LICENSE)), comme PyMuPDF et pdf2docx qu'il utilise. Vous pouvez l'utiliser, l'étudier, le
+modifier et le redistribuer selon ses termes ; toute version modifiée distribuée doit l'être sous la
+même licence, avec son code source.
+
+Téléchargement des installeurs : [xenotools.pro/outils/docflex](https://www.xenotools.pro/outils/docflex)
+ou les [releases GitHub](https://github.com/bielcitech/docflex/releases).
